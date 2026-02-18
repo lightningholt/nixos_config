@@ -129,9 +129,17 @@
     zip
     unzip
     wget
+    gimp
   # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
   #  wget
   ];
+  
+  ## Aliases
+  environment.shellAliases = {
+     ll = "ls -lh";
+     ls = "ls --color=tty";
+     nixbuild = "sudo nixos-rebuild switch";
+  };
   
   ## Gaming
   programs.steam = {
