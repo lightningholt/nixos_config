@@ -2,14 +2,41 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   imports =
-    [ # Include the results of the hardware scan.
+    [ (modulesPath + "/installer/scan/not-detected.nix")
+    # Include the results of the hardware scan.
       ./hardware-configuration.nix
     ];
 
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "sd_mod" ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ "kvm-amd" ];
+  boot.extraModulePackages = [ ];
+  boot.kernelParams = [ "initcall_blacklist=simpledrm_platform_driver_init" ];
+
+  fileSystems."/" =
+    { device = "/dev/disk/by-uuid/9ae8bc38-4956-45cc-bef0-79b96d2c14ce";
+      fsType = "ext4";
+    };
+
+  fileSystems."/boot" =
+    { device = "/dev/disk/by-uuid/3D3B-FB7C";
+      fsType = "vfat";
+      options = [ "fmask=0077" "dmask=0077" ];    };
+
+  fileSystems."/mnt/hdd_filestore" =
+    { device = "/dev/disk/by-uuid/a0b06075-e7c8-4da5-90a8-1922a6d3cad5";
+      fsType = "ext4";
+    };
+
+  swapDevices = [ ];
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -96,9 +123,58 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    vim git # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    vim 
+    git
+    lshw
+    zip
+    unzip
+    wget
+  # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
   #  wget
   ];
+  
+  ## Gaming
+  programs.steam = {
+    enable = true;
+    gamescopeSession.enable = true;
+    protontricks.enable = true;
+  };
+  programs.gamemode.enable = true; #request for OS to optimize to gaming
+  
+  ### NVIDIA
+  nixpkgs.config.nvidia.acceptLicense = true; # accept NVIDIA EULA 
+  hardware.opengl = 
+  {
+      enable = true;
+  };
+  
+  hardware.nvidia = 
+  {
+      modesetting.enable = true;
+
+      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+      # Enable this if you have graphical corruption issues or application crashes after waking
+      # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead 
+      # of just the bare essentials.
+      powerManagement.enable = false;
+      
+      # Use the NVidia open source kernel module (not to be confused with the
+      # independent third-party "nouveau" open source driver).
+      # Support is limited to the Turing and later architectures. Full list of 
+      # supported GPUs is at: 
+      # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus 
+      # Only available from driver 515.43.04+
+      open = true;
+
+      # Enable the Nvidia settings menu,
+      # accessible via `nvidia-settings`.
+      nvidiaSettings = true;
+
+      package =
+      config.boot.kernelPackages.nvidiaPackages.stable;
+
+  };
+  services.xserver.videoDrivers = ["nvidia"];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
