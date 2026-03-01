@@ -37,6 +37,14 @@
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   
+  # Security
+  security.sudo = {
+    enable = true;
+    extraConfig = ''
+      Defaults  timestamp_timeout=5
+    '';
+  };
+  
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -108,7 +116,7 @@
   users.users.calebh = {
     isNormalUser = true;
     description = "Caleb Holt";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel"  "docker"];
     packages = with pkgs; [
     #  thunderbird
     ];
@@ -116,6 +124,9 @@
 
   # Install firefox.
   programs.firefox.enable = true;
+  
+  # Docker
+  virtualisation.docker.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
@@ -130,6 +141,7 @@
     unzip
     wget
     gimp
+    google-cloud-sdk
   # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
   #  wget
   ];
@@ -164,7 +176,7 @@
       # Enable this if you have graphical corruption issues or application crashes after waking
       # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead 
       # of just the bare essentials.
-      powerManagement.enable = false;
+      powerManagement.enable = true;
       
       # Use the NVidia open source kernel module (not to be confused with the
       # independent third-party "nouveau" open source driver).
